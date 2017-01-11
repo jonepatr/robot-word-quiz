@@ -31,16 +31,21 @@ public class RobotWordQuizSystem {
 		SituatedDialogSystem system = new SituatedDialogSystem(this.getClass());
 		SystemAgentFlow systemAgentFlow = system.addSystemAgent();
 		system.setLanguage(Language.ENGLISH_US);
-		system.setupLogging(new File("c:/iristk_logging"), true);
+//		system.setupLogging(new File("c:/iristk_logging"), true);
 		system.setupGUI();
 		system.setupMonoMicrophone(new GoogleRecognizerFactory());
 		system.setupFace(new WindowsSynthesizer(), Gender.FEMALE);
-		Words words = new Words(system); 
+		System.out.println(system.getPackageFile("words.txt").getAbsolutePath());
+		Words words = new Words(
+			system.getPackageFile("words.txt").getAbsolutePath(),
+			new ContextLoader(system)
+		); 
 		system.addModule(new FlowModule(new RobotWordQuizFlow(words, systemAgentFlow)));
 		ArrayList<String> numbers = new ArrayList<String>();
 		for (int i = 0; i < 100; i++) {
 			numbers.add(String.valueOf(i));
 		}
+		
 		system.loadContext("numbers", new OpenVocabularyContext(system.getLanguage(), numbers));
 		system.setDefaultContext("default");
 		system.loadPositions(system.getPackageFile("situation.properties"));		

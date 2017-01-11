@@ -1,0 +1,8 @@
+<package name="robotwordquiz">
+	<run>
+		<command name="chess" class="iristk.app.robotwordquiz.RobotWordQuizSystem" descr="Run the Word Quiz"/>
+	</run>
+	<classpath>
+		<src path="src" output="bin"/>
+	</classpath>
+</package>

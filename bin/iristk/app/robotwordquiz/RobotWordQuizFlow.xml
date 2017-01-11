@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<flow name="RobotWordQuizFlow" package="iristk.app.quiz" 
+	initial="Greeting" xmlns="iristk.flow"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="iristk.flow.param"
+	xmlns:agent="iristk.situated.SystemAgentFlow"
+	xsi:schemaLocation="iristk.flow flow.xsd iristk.situated.SystemAgentFlow SystemAgentFlow.xsd">
+	
+	<param name="words" type="Words"/>
+	<param name="agent" type="iristk.situated.SystemAgentFlow"/>
+
+	<var name="system" type="iristk.situated.SystemAgent" value="agent.getSystemAgent()"/>
+	<var name="guess" type="int" value="0"/>
+	<var name="winningScore" type="int" value="10"/>
+	<var name="saidWords" type="String[]" value="new String[20]"/>
+	
+	<state id="Idle">
+		<onentry>
+			<agent:attendNobody />
+		</onentry>
+		<onevent name="sense.user.enter">
+			<agent:attend target="event:user"/>
+			<goto state="Greeting"/> 
+		</onevent>
+	</state>
+		
+	<state id="Dialog">
+		<onevent name="sense.user.leave"  cond="system.isAttending(event)">
+			<if cond="system.hasUsers()">
+				<agent:attendRandom/>
+				<reentry/>
+			<else />
+				<goto state="Goodbye"/>
+			</if>
+		</onevent>
+		<onevent name="sense.user.speech.start" cond="system.isAttending(event) and eq(event:speakers, 1)">
+			<agent:gesture name="'smile'"/>
+		</onevent>
+	</state>
+	
+	<state id="Greeting" extends="Dialog">
+		<onentry>
+			<agent:say>Hi there</agent:say>
+			<goto state="StartGame"/> 
+		</onentry>
+	</state> 
+	
+	<state id="StartGame" extends="Dialog">
+		<onentry>
+			
+			<goto state="SayWords"/>
+		</onentry>
+	</state>
+	
+	<state id="Goodbye">
+		<onentry>
+			<agent:say>Goodbye</agent:say>
+			<goto state="Idle"/>
+		</onentry>
+	</state>
+	
+	<state id="SayWords" extends="AwaitAnswer">
+		<onentry>
+			<agent:say>How many words would you like to repeat?</agent:say>
+			<agent:listen context="'numbers'" />
+		</onentry>
+		
+		<onevent name="sense.user.speak">
+			<if cond="asInteger(event:text) &gt; 0">
+				<exec>words.setWords(asInteger(event:text))</exec>
+				<agent:say>Okay.</agent:say>
+				<agent:say>Repeat these words after me. You can say them in any order you want.</agent:say>
+			<agent:say><expr>words.getWordList()</expr></agent:say>
+				<goto state="AwaitAnswer"/>
+			<elseif cond="asInteger(event:text) == 0" />
+				<agent:say>hahaha, are you trying to be funny? Give me a number between 1 and 6</agent:say>
+				<reentry />
+			<else />
+				<agent:say>Sorry, that's not an option.</agent:say>
+				<reentry />
+			</if>
+			
+
+		</onevent>
+		
+	</state>
+	
+	<state id="Done">
+		<onentry>
+			<agent:say>Good job!! You made it</agent:say>
+		</onentry>
+	</state>
+	
+	<state id="AwaitAnswer" extends="Dialog">
+		<onentry>
+			<agent:listen context="'words'" />
+		</onentry>
+		<onevent name="sense.user.speak">
+			
+			
+			<if cond="words.isWord(event:text)">
+				<exec>String w = words.saidWord(event:text)</exec>
+				<if cond="asInteger(words.wordsLeft()) == 0">
+					<goto state="Done"/>
+				<elseif cond="w != null" />
+					<agent:say>Okay. <expr>w</expr> <if cond="w.split(', ').length == 1">was<else />were</if> wrong, but the rest was good.</agent:say>
+					<agent:say>Only <expr>words.wordsLeft()</expr> more word<if cond="words.wordsLeft() == 1">s</if> to go.</agent:say>
+					
+					<goto state="AwaitAnswer"/>
+				<else />
+					<agent:say>Good! Only <expr>words.wordsLeft()</expr> more word<if cond="words.wordsLeft() == 1">s</if> to go.</agent:say>
+					<goto state="AwaitAnswer"/>
+				</if>
+			<else />
+				<agent:say>Nope, <expr>event:text</expr> wasn't among the words I said.</agent:say>
+				<goto state="AwaitAnswer"/>
+			</if>
+		</onevent>
+		<onevent name="sense.user.speak">
+			
+		</onevent>
+
+		<onevent name="sense.user.silence">
+			<raise event="skip"/>
+		</onevent>
+		<onevent name="skip">
+			<agent:say>Give me your best guess</agent:say>
+			<goto state="AwaitAnswer"/>
+		</onevent>
+	</state>
+	
+
+</flow>
